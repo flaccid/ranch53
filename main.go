@@ -168,21 +168,23 @@ func discover(rancherClient *rancher.RancherClient, r53 *route53.Route53) {
 		for k, v := range s.LaunchConfig.Labels {
 			// this lb should be in a r53 zone
 			if k == "r53_zone_id" {
-			  log.Debug("found service with r53 zone: ", s, k, v)
+				log.Debug("found service with r53 zone: ", s, k, v)
 
-			  // assign the zone and get the other label values, params
-			  zoneId := fmt.Sprint(v)
-			  dnsName := fmt.Sprint(s.LaunchConfig.Labels["dns_name"])
-			  dnsTarget := fmt.Sprint(s.LaunchConfig.Labels["dns_target"])
+				// assign the zone and get the other label values, params
+				zoneId := fmt.Sprint(v)
+				dnsName := fmt.Sprint(s.LaunchConfig.Labels["dns_name"])
+				dnsTarget := fmt.Sprint(s.LaunchConfig.Labels["dns_target"])
 
-			  log.WithFields(log.Fields{
-			      "zone_id": zoneId,
-			      "name": dnsName,
-			      "target": dnsTarget,
-			    }).Info("update record")
+				log.WithFields(log.Fields{
+					"zone_id": zoneId,
+					"name": dnsName,
+					"target": dnsTarget,
+				}).Info("update record")
 
-			  // upsert the record to r53
-			  createCNAME(r53, zoneId, dnsName, dnsTarget)
+				// todo: only update the record if changed/needed
+
+				// upsert the record to r53
+				createCNAME(r53, zoneId, dnsName, dnsTarget)
 			}
 		}
 	}
