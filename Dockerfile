@@ -1,4 +1,4 @@
-FROM scratch
+FROM centurylink/ca-certs
 
 COPY bin/ranch53 /usr/local/bin/ranch53
 
