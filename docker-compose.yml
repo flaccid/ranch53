@@ -1,0 +1,14 @@
+version: '2'
+services:
+  ranch53:
+    image: flaccid/ranch53
+    environment:
+      RANCHER_URL: ${RANCHER_URL}
+      RANCHER_ACCESS_KEY: ${RANCHER_ACCESS_KEY}
+      RANCHER_SECRET_KEY: ${RANCHER_SECRET_KEY}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    stdin_open: true
+    tty: true
+    labels:
+      io.rancher.container.pull_image: always
