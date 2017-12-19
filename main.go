@@ -21,6 +21,71 @@ var (
 
 var withoutPagination *rancher.ListOpts
 
+func main() {
+	app := cli.NewApp()
+	app.Name = "ranch53"
+	app.Version = VERSION
+	app.Usage = "ranch53"
+	app.Action = start
+	app.Before = beforeApp
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name: "debug,d",
+		},
+		cli.StringFlag{
+			Name:  "rancher-url",
+			Value: "http://localhost:8080/",
+			Usage: "Provide full URL of rancher server",
+			EnvVar: "RANCHER_URL",
+		},
+		cli.StringFlag{
+			Name:  "rancher-access-key",
+			Usage: "Rancher Access Key",
+			EnvVar: "RANCHER_ACCESS_KEY",
+		},
+		cli.StringFlag{
+			Name:  "rancher-secret-key",
+			Usage: "Rancher Secret Key",
+			EnvVar: "RANCHER_SECRET_KEY",
+		},
+		cli.StringFlag{
+			Name: "poll-interval,t",
+			Usage: "Polling interval",
+			EnvVar: "POLL_INTERVAL",
+		},
+	}
+
+	app.Run(os.Args)
+}
+
+func beforeApp(c *cli.Context) error {
+	if c.GlobalBool("debug") {
+		log.SetLevel(log.DebugLevel)
+	}
+	return nil
+}
+
+func start(c *cli.Context) error {
+	log.Info("starting up")
+
+	// create the rancher client
+	rancherClient := createClient(c.String("rancher-url"),
+	                              c.String("rancher-access-key"),
+	                              c.String("rancher-secret-key"))
+
+	// create the aws session
+	awsSession, err := session.NewSession()
+	if err != nil {
+		log.Error("failed to create aws session", err)
+	}
+	r53 := route53.New(awsSession)
+
+	// the integration junction magic factory entrypoint
+	discover(rancherClient, r53)
+
+	return nil
+}
+
 func createClient(rancherURL, accessKey, secretKey string) (*rancher.RancherClient) {
 	client, err := rancher.NewRancherClient(&rancher.ClientOpts{
 		Url:       rancherURL,
@@ -51,87 +116,6 @@ func listRancherLoadBalancerServices(client *rancher.RancherClient) []*rancher.L
 	}
 
 	return servicesList
-}
-
-func main() {
-	app := cli.NewApp()
-	app.Name = "ranch53"
-	app.Version = VERSION
-	app.Usage = "ranch53"
-	app.Action = start
-	app.Before = beforeApp
-	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name: "debug,d",
-		},
-		cli.StringFlag{
-			Name:  "rancher-url",
-			Value: "http://localhost:8080/",
-			Usage: "Provide full URL of rancher server",
-			EnvVar: "RANCHER_URL",
-		},
-		cli.StringFlag{
-			Name:  "rancher-access-key",
-			Usage: "Rancher Access Key",
-			EnvVar: "RANCHER_ACCESS_KEY",
-		},
-		cli.StringFlag{
-			Name:  "rancher-secret-key",
-			Usage: "Rancher Secret Key",
-			EnvVar: "RANCHER_SECRET_KEY",
-		},
-	}
-
-	app.Run(os.Args)
-}
-
-func beforeApp(c *cli.Context) error {
-	if c.GlobalBool("debug") {
-		log.SetLevel(log.DebugLevel)
-	}
-	return nil
-}
-
-func start(c *cli.Context) error {
-	log.Info("starting up")
-
-	// create the rancher client
-	rancherClient := createClient(c.String("rancher-url"),
-	                              c.String("rancher-access-key"),
-	                              c.String("rancher-secret-key"))
-
-	loadBalancerServices := listRancherLoadBalancerServices(rancherClient)
-
-	sess, err := session.NewSession()
-	if err != nil {
-		log.Error("failed to create r53 session", err)
-	}
-	r53 := route53.New(sess)
-
-	for _, s := range loadBalancerServices {
-		for k, v := range s.LaunchConfig.Labels {
-			// this lb should be in a r53 zone
-			if k == "r53_zone_id" {
-			  log.Debug("found service with r53 zone: ", s, k, v)
-
-			  // assign the zone and get the other label values, params
-			  zoneId := fmt.Sprint(v)
-			  dnsName := fmt.Sprint(s.LaunchConfig.Labels["dns_name"])
-			  dnsTarget := fmt.Sprint(s.LaunchConfig.Labels["dns_target"])
-
-			  log.WithFields(log.Fields{
-			      "zone_id": zoneId,
-			      "name": dnsName,
-			      "target": dnsTarget,
-			    }).Info("update record")
-
-			  // upsert the record to r53
-			  createCNAME(r53, zoneId, dnsName, dnsTarget)
-			}
-		}
-	}
-
-	return nil
 }
 
 func createCNAME(svc *route53.Route53, zoneId string, name string, target string) {
@@ -166,4 +150,31 @@ func createCNAME(svc *route53.Route53, zoneId string, name string, target string
 	}
 
 	log.Info(resp)
+}
+
+func discover(rancherClient *rancher.RancherClient, r53 *route53.Route53) {
+	loadBalancerServices := listRancherLoadBalancerServices(rancherClient)
+
+	for _, s := range loadBalancerServices {
+		for k, v := range s.LaunchConfig.Labels {
+			// this lb should be in a r53 zone
+			if k == "r53_zone_id" {
+			  log.Debug("found service with r53 zone: ", s, k, v)
+
+			  // assign the zone and get the other label values, params
+			  zoneId := fmt.Sprint(v)
+			  dnsName := fmt.Sprint(s.LaunchConfig.Labels["dns_name"])
+			  dnsTarget := fmt.Sprint(s.LaunchConfig.Labels["dns_target"])
+
+			  log.WithFields(log.Fields{
+			      "zone_id": zoneId,
+			      "name": dnsName,
+			      "target": dnsTarget,
+			    }).Info("update record")
+
+			  // upsert the record to r53
+			  createCNAME(r53, zoneId, dnsName, dnsTarget)
+			}
+		}
+	}
 }
