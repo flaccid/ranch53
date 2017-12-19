@@ -67,7 +67,7 @@ func beforeApp(c *cli.Context) error {
 }
 
 func start(c *cli.Context) error {
-	log.Info("starting up")
+	log.Info("ranch53 starting up")
 
 	// create the rancher client
 	rancherClient := createClient(c.String("rancher-url"),
@@ -83,7 +83,7 @@ func start(c *cli.Context) error {
 
 	// the integration junction magic factory entrypoint
 	if c.Int("poll-interval") > 0 {
-		log.Info(c.Int("poll-interval"))
+		log.Debug("poll interval: ", c.Int("poll-interval"))
 		for {
 			discover(rancherClient, r53)
 			time.Sleep(time.Duration(c.Int("poll-interval")) * (time.Millisecond * 1000))
