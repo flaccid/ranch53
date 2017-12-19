@@ -33,7 +33,14 @@ Example usage:
 
 (todo: this requires needed env vars)
 
-    $ docker run -it flaccid/ranch53
+    $ docker run \
+        -it \
+        --env-file .env \
+          flaccid/ranch53
+
+##### Publish
+
+    $ docker push flaccid/ranch53
 
 ### Run
 
