@@ -48,10 +48,11 @@ func main() {
 			Usage: "Rancher Secret Key",
 			EnvVar: "RANCHER_SECRET_KEY",
 		},
-		cli.StringFlag{
+		cli.IntFlag{
 			Name: "poll-interval,t",
 			Usage: "Polling interval",
 			EnvVar: "POLL_INTERVAL",
+			Value: 0,
 		},
 	}
 
@@ -81,7 +82,15 @@ func start(c *cli.Context) error {
 	r53 := route53.New(awsSession)
 
 	// the integration junction magic factory entrypoint
-	discover(rancherClient, r53)
+	if c.Int("poll-interval") > 0 {
+		log.Info(c.Int("poll-interval"))
+		for {
+			discover(rancherClient, r53)
+			time.Sleep(time.Duration(c.Int("poll-interval")) * (time.Millisecond * 1000))
+		}
+	} else {
+		discover(rancherClient, r53)
+	}
 
 	return nil
 }
