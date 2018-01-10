@@ -17,9 +17,6 @@ import (
 
 var (
 	VERSION = "v0.0.0-dev"
-	CATTLE_ACCESS_KEY = ""
-	CATTLE_SECRET_KEY = ""
-	CATTLE_URL = ""
 )
 
 var withoutPagination *rancher.ListOpts
