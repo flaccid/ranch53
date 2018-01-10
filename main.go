@@ -17,6 +17,9 @@ import (
 
 var (
 	VERSION = "v0.0.0-dev"
+	CATTLE_ACCESS_KEY = ""
+	CATTLE_SECRET_KEY = ""
+	CATTLE_URL = ""
 )
 
 var withoutPagination *rancher.ListOpts
@@ -36,17 +39,27 @@ func main() {
 			Name:  "rancher-url",
 			Value: "http://localhost:8080/",
 			Usage: "Provide full URL of rancher server",
-			EnvVar: "RANCHER_URL",
+			EnvVar: "CATTLE_URL",
 		},
 		cli.StringFlag{
 			Name:  "rancher-access-key",
 			Usage: "Rancher Access Key",
-			EnvVar: "RANCHER_ACCESS_KEY",
+			EnvVar: "CATTLE_ACCESS_KEY",
 		},
 		cli.StringFlag{
 			Name:  "rancher-secret-key",
 			Usage: "Rancher Secret Key",
-			EnvVar: "RANCHER_SECRET_KEY",
+			EnvVar: "CATTLE_SECRET_KEY",
+		},
+		cli.StringFlag{
+			Name:  "aws-access-key-id",
+			Usage: "AWS Access Key ID",
+			EnvVar: "AWS_ACCESS_KEY_ID",
+		},
+		cli.StringFlag{
+			Name:  "aws-secret-access-key",
+			Usage: "AWS Secret Access Key",
+			EnvVar: "AWS_SECRET_ACCESS_KEY",
 		},
 		cli.IntFlag{
 			Name: "poll-interval,t",
@@ -68,6 +81,16 @@ func beforeApp(c *cli.Context) error {
 
 func start(c *cli.Context) error {
 	log.Info("ranch53 starting up")
+
+	// ensure that we have been provided aws credentials
+	if len(c.String("aws-access-key-id")) < 1 {
+		log.Errorf("aws access key id not provided, exiting")
+		os.Exit(1)
+	}
+	if len(c.String("aws-secret-access-key")) < 1 {
+		log.Errorf("aws secret key not provided, exiting")
+		os.Exit(1)
+	}
 
 	// create the rancher client
 	rancherClient := createClient(c.String("rancher-url"),
