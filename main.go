@@ -86,7 +86,7 @@ func start(c *cli.Context) error {
 
 	// user must specify at least one action
 	if !c.Bool("sync-host-pools") && !c.Bool("sync-lb-services") {
-		log.Errorf("you must specify at least one of --sync-hosts-pool or --sync-lb-services")
+		log.Errorf("you must specify at least one of --sync-host-pools or --sync-lb-services")
 		os.Exit(1)
 	}
 
