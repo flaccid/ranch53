@@ -1,6 +1,20 @@
 # ranch53
 
-Simple service that updates Route 53 based on labels on Rancher services.
+A simple service that updates Route 53 based on labels on Rancher services.
+
+## How does it work?
+
+Currently the following two synchronisations are actioned:
+
+ 1. Load Balancer Services that have the labels, `dns_alias` and `dns_target`
+    will have a CNAME record created or updated in that R53 zone in the format of
+    `<dns_alias>. CNAME <dns_target>`
+
+ 2. Hosts that have the labels, `tier` and `pool_zone` will update an A record
+    with each of their private IP addresses under the name, `rancher-<tier>-pool.<pool_zone>`
+
+Limited use cases are supported currently. Please raise an issue so we can look at
+how to best add other uses.
 
 ## Installation
 
